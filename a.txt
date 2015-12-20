@@ -1,0 +1,15 @@
+301 www.tutorialspoint.com/images, Location http://www.tutorialspoint.com/images/
+301 www.tutorialspoint.com/css, Location http://www.tutorialspoint.com/css/
+301 www.tutorialspoint.com/js, Location http://www.tutorialspoint.com/js/
+200 www.tutorialspoint.com/Thumbs.db
+301 www.tutorialspoint.com/themes, Location http://www.tutorialspoint.com/themes/
+301 www.tutorialspoint.com/img, Location http://www.tutorialspoint.com/img/
+301 www.tutorialspoint.com/plugins, Location http://www.tutorialspoint.com/plugins/
+301 www.tutorialspoint.com/icons, Location http://www.tutorialspoint.com/icons/
+200 www.tutorialspoint.com/readme.txt
+301 www.tutorialspoint.com/html, Location http://www.tutorialspoint.com/html/
+200 www.tutorialspoint.com/test
+301 www.tutorialspoint.com/php, Location http://www.tutorialspoint.com/php/
+200 www.tutorialspoint.com/data
+301 www.tutorialspoint.com/scripts, Location http://www.tutorialspoint.com/scripts/
+200 www.tutorialspoint.com/header.php
