@@ -1,3 +1,3 @@
 # cfuzzer
 
-This is a url-fuzzer..
+This is a url-fuzzer.
