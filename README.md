@@ -1,3 +1,3 @@
 # cfuzzer
 
-This is a url-fuzzer written in c.
+This is a url-fuzzer.
