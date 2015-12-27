@@ -116,6 +116,27 @@ void create_header(char *head, char *rel, const char *host) {
     //printf("\n\n%s\n\n", str_header);
 }
 
+char *parse_header(char *text) {
+    
+    int s = (int)(strstr(text, "\r\n\r\n")-text);
+    char *str_res_header = malloc(s*sizeof(char));
+    memset(str_res_header ,0 , s);
+    for (int i=0; i<s; i++) {
+        str_res_header[i] = text[i];
+    }
+    
+    return str_res_header;
+}
+
+int parse_status_code(char *header) {
+    char code[3];
+    for (int i=0; i<3; i++) {
+        code[i] = header[9+i];
+    }
+    
+    return atoi(code);
+}
+
 void intHandler() {
     fclose(relfd);
     fclose(addrfd);
@@ -137,6 +158,10 @@ int main(int argc, const char * argv[]) {
     struct hostent *hp = NULL;
     struct sockaddr_in client_sock;
     
+    if(argc<3) {
+        printf("\n Please choose a valid wordlist. \n");
+        return 1;
+    }
     
     for (int i=0; i<argc; i++) {
         if (!strcmp(argv[i], "-p")) {
@@ -188,7 +213,7 @@ int main(int argc, const char * argv[]) {
                 strcpy(addr, argv[i]);
                 printf("\n%s\n", addr);
                 for (int i=0; i<strlen(addr); i++) {
-                    if (!(isdigit(addr[i]) || addr[i]=='.')) { //this isn't right. REVISE
+                    if (isalpha(addr[i])) { //revising
                         printf("\nNAME\n");
                         if ((hp = gethostbyname(addr)) == NULL) {
                             // get the host info
@@ -204,8 +229,13 @@ int main(int argc, const char * argv[]) {
                 
                 if (hp==NULL) {
                     printf("\nNUM\n");
-                    inet_aton(argv[i], &client_sock.sin_addr);
                     client_sock.sin_family = AF_INET;
+                    if(inet_pton(AF_INET, addr, &client_sock.sin_addr)<=0)
+                    {
+                        printf("\n inet_pton error occured\n");
+                        return 1;
+                    }
+                    //client_sock.sin_addr.s_addr = inet_addr(addr);
                 }
             }
         }
@@ -296,20 +326,19 @@ int main(int argc, const char * argv[]) {
             //printf("\n\nrecv of size:%i\n\n", tot_size);
             
         
-            int s = (int)(strstr(serv_reply, "\r\n\r\n")-serv_reply);
-            char str_res_header[s];
-            strncpy(str_res_header, serv_reply, (s-1)*sizeof(char)); //change to deep copy
-            str_res_header[s-1] = '\0';
+            char *str_res_header = parse_header(serv_reply);
             
-            //printf("\nServer reply:%s\n\n%s\n",str_rel, str_res_header);
+            printf("\nServer reply:%s\n\n%s\n",str_rel, str_res_header);
             
-            if (strstr(str_res_header, "200")!=NULL) {
-                printf("\n\nFOUND 200\n\n");
+            int status_code = parse_status_code(str_res_header);
+            
+            if (status_code == 200) {
+                printf("\n\nFOUND %i\n\n", status_code);
                 if (outfd != NULL) {
                     fprintf(outfd, "200 %s/%s\n", addr, str_rel);
                 }
-            } else if(strstr(str_res_header, "301")!=NULL) {
-                printf("\n\nFOUND 301\n\n");
+            } else if(status_code == 301) {
+                printf("\n\nFOUND %i\n\n", status_code);
                 if (outfd != NULL) {
                     
                     int sn = (int)(strstr(str_res_header, "Location")-str_res_header)+10;
@@ -323,6 +352,9 @@ int main(int argc, const char * argv[]) {
                     fprintf(outfd, "301 %s/%s, Location %s\n", addr, str_rel, redirect);
                 }
             }
+            
+            free(str_res_header);
+            
         }
         close(sockfd);
         printf("\nClosed sock and creating a new one.\n");
