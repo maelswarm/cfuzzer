@@ -65,25 +65,20 @@ int recv_timeout(int s, char *reply, float timeout)
     
     while(1)
     {
-        //printf("\nHERE1 %s, %f, %f %i\n" , chunk, timediff, timeout, total_size);
         gettimeofday(&now , NULL);
         
         //time elapsed in seconds
         timediff = (now.tv_sec - begin.tv_sec) + 1e-6 * (now.tv_usec - begin.tv_usec);
         
-        //printf("\nHERE2 %s, %f, %i %i\n" , chunk, timediff, timeout, total_size);
-        
         //if you got some data, then break after timeout
         if( total_size > 0 && timediff > timeout )
         {
-            //printf("\nHERE3 %s, %f, %i %i\n" , chunk, timediff, timeout, total_size);
             break;
         }
         
         //if you got no data at all, wait a little longer, twice the timeout
         else if( timediff > timeout*2)
         {
-            //printf("\nHERE4 %s, %f, %i %i\n" , chunk, timediff, timeout, total_size);
             break;
         }
         
@@ -95,7 +90,6 @@ int recv_timeout(int s, char *reply, float timeout)
         }
         else
         {
-            //printf("\nHERE5 %s, %f, %i %i\n" , chunk, timediff, timeout, total_size);
             strcpy(&reply[total_size], chunk);
             total_size += size_recv;
             //printf("%s" , chunk);
@@ -103,7 +97,6 @@ int recv_timeout(int s, char *reply, float timeout)
             gettimeofday(&begin , NULL);
         }
     }
-    //printf("\nHERE6 %s, %f, %f %i\n" , chunk, timediff, timeout, total_size);
     return total_size;
 }
 
@@ -153,13 +146,18 @@ int main(int argc, const char * argv[]) {
     unsigned short int port = 80; //port
     unsigned short int verbose = 0; //verbose
     char addr[1024]; //hostname
-    char serv_reply[1000000]; //we only care about the first line, actually leave as an option;
+    char serv_reply[1000000];
     
     struct hostent *hp = NULL;
-    struct sockaddr_in client_sock;
+    struct sockaddr_in6 client_sock;
     
     if(argc<3) {
-        printf("\n Please choose a valid wordlist. \n");
+        printf("\nCommands:\n");
+        printf("   -p : port number\n");
+        printf("   -o : outfile\n");
+        printf("   -w : wordlist\n");
+        printf("   -t : timeout (default 1.0 sec)\n");
+        printf("Example: ./cfuzzer google.com -p 80 -w wordLists/File_Dir_All.wordlist\n\n");
         return 1;
     }
     
@@ -203,6 +201,13 @@ int main(int argc, const char * argv[]) {
             i++;
         } else if (!strcmp(argv[i], "-s")) { //number of processes
             
+        } else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) { //number of processes
+            printf("\nCommands:\n");
+            printf("\t-p : port number\n");
+            printf("\t-o : outfile\n");
+            printf("\t-w : wordlist\n");
+            printf("\t-t : timeout (default 1.0 sec)\n");
+            printf("\n\tExample : ./cfuzzer google.com -p 80 -w wordLists/File_Dir_All.wordlist\n");
         } else if (!strcmp(argv[i], "-v")) { //verbose
             verbose = 1;
         } else if (!strcmp(argv[i], "--header")) { //todo custom header
@@ -215,13 +220,13 @@ int main(int argc, const char * argv[]) {
                 for (int i=0; i<strlen(addr); i++) {
                     if (isalpha(addr[i])) { //revising
                         printf("\nNAME\n");
-                        if ((hp = gethostbyname(addr)) == NULL) {
+                        if ((hp = gethostbyname2(addr, AF_INET6)) == NULL) {
                             // get the host info
                             herror("gethostbyname");
                             return 1;
                         }
-                        memcpy((char *)&client_sock.sin_addr, hp->h_addr, hp->h_length);
-                        client_sock.sin_family = hp->h_addrtype;
+                        memcpy((char *)&client_sock.sin6_addr, hp->h_addr, hp->h_length);
+                        client_sock.sin6_family = hp->h_addrtype;
                         
                         break;
                     }
@@ -229,8 +234,8 @@ int main(int argc, const char * argv[]) {
                 
                 if (hp==NULL) {
                     printf("\nNUM\n");
-                    client_sock.sin_family = AF_INET;
-                    if(inet_pton(AF_INET, addr, &client_sock.sin_addr)<=0)
+                    client_sock.sin6_family = AF_INET6;
+                    if(inet_pton(AF_INET6, addr, &client_sock.sin6_addr)<=0)
                     {
                         printf("\n inet_pton error occured\n");
                         return 1;
@@ -246,8 +251,8 @@ int main(int argc, const char * argv[]) {
         return 1;
     }
     
-    client_sock.sin_len = sizeof(client_sock);
-    client_sock.sin_port = htons(port);
+    client_sock.sin6_len = sizeof(client_sock);
+    client_sock.sin6_port = htons(port);
     
     printf("\nCHECKING\n");
     
@@ -258,7 +263,7 @@ int main(int argc, const char * argv[]) {
     
     while (!feof(relfd)) {
         
-        if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        if((sockfd = socket(AF_INET6, SOCK_STREAM, 0)) < 0)
         {
             printf("\n Error : Could not create socket %s\n", strerror(errno));
             return 1;
@@ -300,7 +305,7 @@ int main(int argc, const char * argv[]) {
             }
             
             
-            printf("\nREAD String:%s\n",str_rel);
+            printf("\nChecking path: %s\n",str_rel);
             strcpy(lst_rel, str_rel);
             
             create_header(str_header, str_rel, addr);
@@ -328,17 +333,17 @@ int main(int argc, const char * argv[]) {
         
             char *str_res_header = parse_header(serv_reply);
             
-            printf("\nServer reply:%s\n\n%s\n",str_rel, str_res_header);
+            //printf("\nServer reply:%s\n\n%s\n",str_rel, str_res_header);
             
             int status_code = parse_status_code(str_res_header);
             
             if (status_code == 200) {
-                printf("\n\nFOUND %i\n\n", status_code);
+                printf("\n\nSTATUS %i\n\n", status_code);
                 if (outfd != NULL) {
                     fprintf(outfd, "200 %s/%s\n", addr, str_rel);
                 }
             } else if(status_code == 301) {
-                printf("\n\nFOUND %i\n\n", status_code);
+                printf("\n\nSTATUS %i\n\n", status_code);
                 if (outfd != NULL) {
                     
                     int sn = (int)(strstr(str_res_header, "Location")-str_res_header)+10;
