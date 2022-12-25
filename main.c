@@ -32,6 +32,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <string.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -251,7 +252,8 @@ int main(int argc, const char * argv[]) {
         return 1;
     }
     
-    client_sock.sin6_len = sizeof(client_sock);
+    //client_sock.sin6_len = sizeof(client_sock);
+    size_t socklen = sizeof(client_sock);
     client_sock.sin6_port = htons(port);
     
     printf("\nCHECKING\n");
